@@ -4,7 +4,6 @@ import { files } from "@/lib/db/schema/files";
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
-import pdfParse from "pdf-parse";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -17,6 +16,7 @@ async function extractText(file: File): Promise<string> {
   const name = file.name.toLowerCase();
 
   if (name.endsWith(".pdf")) {
+    const pdfParse = (await import("pdf-parse")).default;
     const { text } = await pdfParse(buffer);
     return text;
   }
