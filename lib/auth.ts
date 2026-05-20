@@ -1,5 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import GitHubProvider from "next-auth/providers/github";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema/users";
 import { eq } from "drizzle-orm";
@@ -9,6 +11,14 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    }),
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID ?? "",
+      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
+    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -23,7 +33,7 @@ export const authOptions: NextAuthOptions = {
           .from(users)
           .where(eq(users.email, credentials.email));
 
-        if (!user) return null;
+        if (!user || !user.password) return null;
 
         const valid = await bcrypt.compare(credentials.password, user.password);
         if (!valid) return null;
@@ -33,6 +43,32 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      // For OAuth providers, auto-create user in DB if they don't exist
+      if (account?.provider === "google" || account?.provider === "github") {
+        if (!user.email) return false;
+
+        const [existing] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, user.email));
+
+        if (!existing) {
+          const [created] = await db
+            .insert(users)
+            .values({
+              name: user.name ?? user.email.split("@")[0],
+              email: user.email,
+              password: null,
+            })
+            .returning();
+          user.id = created.id;
+        } else {
+          user.id = existing.id;
+        }
+      }
+      return true;
+    },
     jwt({ token, user }) {
       if (user) token.id = user.id;
       return token;
