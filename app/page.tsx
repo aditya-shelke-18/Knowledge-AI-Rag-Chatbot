@@ -101,7 +101,7 @@ export default function Chat() {
     text: string;
   } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<"chats" | "docs">("chats");
@@ -393,10 +393,18 @@ export default function Chat() {
       onDragLeave={() => setIsDragging(false)}
       onDrop={onDrop}
     >
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ═══ Sidebar ═══ */}
       <div
-        className={`flex-shrink-0 border-r border-white/10 bg-black/20 backdrop-blur-xl flex flex-col transition-all duration-300 ${
-          sidebarOpen ? "w-72" : "w-0"
+        className={`fixed lg:relative inset-y-0 left-0 z-30 lg:z-auto flex-shrink-0 border-r border-white/10 bg-black/40 lg:bg-black/20 backdrop-blur-xl flex flex-col transition-all duration-300 ${
+          sidebarOpen ? "w-72 translate-x-0" : "w-72 -translate-x-full lg:w-0 lg:translate-x-0"
         } overflow-hidden`}
       >
         {/* Sidebar Header */}
@@ -409,7 +417,7 @@ export default function Chat() {
             onClick={() => setSidebarOpen(false)}
             className="p-1 rounded-lg hover:bg-white/10 transition-colors"
           >
-            <PanelLeftClose className="w-4 h-4 text-slate-400" />
+            <X className="w-4 h-4 text-slate-400" />
           </button>
         </div>
 
@@ -600,14 +608,12 @@ export default function Chat() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-white/5 backdrop-blur-md">
-          {!sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors mr-1"
-            >
-              <PanelLeftOpen className="w-4 h-4 text-slate-400" />
-            </button>
-          )}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
+          >
+            <PanelLeftOpen className="w-4 h-4 text-slate-400" />
+          </button>
           <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 shadow-lg shadow-violet-500/30">
             <Brain className="w-4.5 h-4.5 text-white" />
           </div>
@@ -650,7 +656,7 @@ export default function Chat() {
               <p className="text-slate-400 text-sm max-w-sm">
                 Upload a document using the sidebar, then ask me anything about it. I&apos;ll search your knowledge base and cite my sources.
               </p>
-              <div className="grid grid-cols-2 gap-2 mt-2 w-full max-w-md">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 w-full max-w-md">
                 {[
                   { icon: "📄", text: "Upload a PDF document" },
                   { icon: "📊", text: "Import an Excel sheet" },
@@ -689,7 +695,7 @@ export default function Chat() {
               </div>
 
               {/* Bubble */}
-              <div className="max-w-[75%] space-y-2">
+              <div className="max-w-[85%] sm:max-w-[75%] space-y-2">
                 {m.parts.map((part: any, i: number) => {
                   if (part.type === "text") {
                     if (m.role === "user") {
@@ -856,7 +862,7 @@ export default function Chat() {
               </button>
             )}
           </div>
-          <p className="text-center text-slate-600 text-[10px] mt-2">
+          <p className="hidden sm:block text-center text-slate-600 text-[10px] mt-2">
             Drag &amp; drop files anywhere • Supports PDF, Excel, Word, TXT, CSV, Markdown
           </p>
         </div>
