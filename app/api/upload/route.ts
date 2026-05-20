@@ -5,6 +5,8 @@ import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -112,6 +114,9 @@ function chunkText(text: string, targetSize = 800, overlap = 150): string[] {
 }
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const formData = await req.formData();
   const file = formData.get("file") as File;
 
@@ -147,6 +152,7 @@ export async function POST(req: Request) {
   const [fileRecord] = await db
     .insert(files)
     .values({
+      userId: session.user.id,
       name: file.name,
       type: getFileType(file.name),
       size: file.size,

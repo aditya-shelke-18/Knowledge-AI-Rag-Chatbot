@@ -1,10 +1,20 @@
 import { db } from "@/lib/db";
 import { conversations } from "@/lib/db/schema/conversations";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-// GET /api/conversations — list all conversations (without full messages for sidebar)
+async function getUserId() {
+  const session = await getServerSession(authOptions);
+  return session?.user?.id ?? null;
+}
+
+// GET /api/conversations — list user's conversations
 export async function GET() {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const allConversations = await db
     .select({
       id: conversations.id,
@@ -13,6 +23,7 @@ export async function GET() {
       updatedAt: conversations.updatedAt,
     })
     .from(conversations)
+    .where(eq(conversations.userId, userId))
     .orderBy(desc(conversations.updatedAt));
 
   return NextResponse.json(allConversations);
@@ -20,12 +31,15 @@ export async function GET() {
 
 // POST /api/conversations — create a new conversation
 export async function POST(req: Request) {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await req.json().catch(() => ({}));
   const title = body.title || "New Chat";
 
   const [conversation] = await db
     .insert(conversations)
-    .values({ title, messages: [] })
+    .values({ userId, title, messages: [] })
     .returning();
 
   return NextResponse.json(conversation);
@@ -33,6 +47,9 @@ export async function POST(req: Request) {
 
 // DELETE /api/conversations?id=xxx — delete a conversation
 export async function DELETE(req: Request) {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
 
@@ -40,6 +57,6 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Missing conversation id" }, { status: 400 });
   }
 
-  await db.delete(conversations).where(eq(conversations.id, id));
+  await db.delete(conversations).where(and(eq(conversations.id, id), eq(conversations.userId, userId)));
   return NextResponse.json({ message: "Conversation deleted" });
 }

@@ -1,17 +1,22 @@
 import { db } from "@/lib/db";
 import { conversations } from "@/lib/db/schema/conversations";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-// GET /api/conversations/[id] — get a single conversation with messages
+// GET /api/conversations/[id]
 export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const [conversation] = await db
     .select()
     .from(conversations)
-    .where(eq(conversations.id, params.id));
+    .where(and(eq(conversations.id, params.id), eq(conversations.userId, session.user.id)));
 
   if (!conversation) {
     return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
@@ -20,11 +25,14 @@ export async function GET(
   return NextResponse.json(conversation);
 }
 
-// PATCH /api/conversations/[id] — update conversation title and/or messages
+// PATCH /api/conversations/[id]
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await req.json();
   const updates: Record<string, any> = {};
 
@@ -35,7 +43,7 @@ export async function PATCH(
   const [updated] = await db
     .update(conversations)
     .set(updates)
-    .where(eq(conversations.id, params.id))
+    .where(and(eq(conversations.id, params.id), eq(conversations.userId, session.user.id)))
     .returning();
 
   if (!updated) {

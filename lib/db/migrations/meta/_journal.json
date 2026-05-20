@@ -15,6 +15,13 @@
       "when": 1778648496247,
       "tag": "0001_nosy_caretaker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779254884531,
+      "tag": "0002_narrow_james_howlett",
+      "breakpoints": true
     }
   ]
 }
