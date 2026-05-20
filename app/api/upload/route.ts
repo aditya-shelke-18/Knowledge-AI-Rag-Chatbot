@@ -4,14 +4,11 @@ import { files } from "@/lib/db/schema/files";
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdfParse from "pdf-parse";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 export const runtime = "nodejs";
-
-// Disable worker for Node.js environment
-pdfjsLib.GlobalWorkerOptions.workerSrc = "";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -20,23 +17,8 @@ async function extractText(file: File): Promise<string> {
   const name = file.name.toLowerCase();
 
   if (name.endsWith(".pdf")) {
-    const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(buffer),
-      useWorkerFetch: false,
-      useSystemFonts: true,
-    });
-    const pdf = await loadingTask.promise;
-    const textPages: string[] = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const text = content.items
-        .filter((item: any) => "str" in item)
-        .map((item: any) => item.str)
-        .join(" ");
-      textPages.push(text);
-    }
-    return textPages.join("\n");
+    const { text } = await pdfParse(buffer);
+    return text;
   }
 
   if (
