@@ -160,12 +160,13 @@ export async function POST(req: Request) {
     })
     .returning();
 
-  // Create resource + embeddings for each chunk, linked to the file
+  // Create resource + embeddings for each chunk, linked to the file and user
   await Promise.all(
     chunks.map((chunk) =>
       createResource(
         { content: chunk, fileId: fileRecord.id },
-        file.name
+        file.name,
+        session.user.id
       )
     )
   );

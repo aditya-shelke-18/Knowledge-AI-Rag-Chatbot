@@ -3,10 +3,17 @@ import { openai } from "@ai-sdk/openai";
 import { findRelevantContent } from "@/lib/ai/embedding";
 import { convertToModelMessages, streamText, tool, UIMessage, stepCountIs } from "ai";
 import { z } from "zod";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const userId = session.user.id;
   const body = await req.json();
   const messages: UIMessage[] = Array.isArray(body.messages) ? body.messages : [];
 
@@ -31,7 +38,7 @@ export async function POST(req: Request) {
         inputSchema: z.object({
           content: z.string().describe("the content to save"),
         }),
-        execute: async ({ content }) => createResource({ content }),
+        execute: async ({ content }) => createResource({ content }, undefined, userId),
       }),
       getInformation: tool({
         description:
@@ -39,7 +46,7 @@ export async function POST(req: Request) {
         inputSchema: z.object({
           question: z.string().describe("the question to search for"),
         }),
-        execute: async ({ question }) => findRelevantContent(question),
+        execute: async ({ question }) => findRelevantContent(question, userId),
       }),
     },
   });
