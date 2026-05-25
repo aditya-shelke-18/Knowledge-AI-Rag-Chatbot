@@ -44,7 +44,7 @@ export async function POST(
     stopWhen: stepCountIs(3),
   });
 
-  return result.toDataStreamResponse({
+  return result.toUIMessageStreamResponse({
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",

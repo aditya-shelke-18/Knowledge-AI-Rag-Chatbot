@@ -142,12 +142,22 @@
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
         for (const line of lines) {
-          if (line.startsWith('0:')) {
+          // UI message stream format: lines starting with "0:" contain text deltas
+          if (line.startsWith('0:"') || line.startsWith("0:'")) {
             try {
               const parsed = JSON.parse(line.slice(2));
               botText += parsed;
               msgEl.textContent = botText;
               scrollToBottom();
+            } catch {}
+          } else if (line.startsWith('0:')) {
+            try {
+              const parsed = JSON.parse(line.slice(2));
+              if (typeof parsed === 'string') {
+                botText += parsed;
+                msgEl.textContent = botText;
+                scrollToBottom();
+              }
             } catch {}
           }
         }
