@@ -381,7 +381,7 @@ export default function Dashboard() {
                           <p className="text-indigo-300 text-xs font-semibold mb-2">How to use</p>
                           <ol className="text-slate-400 text-xs space-y-1 list-decimal list-inside">
                             <li>Copy the embed code above</li>
-                            <li>Paste it into your website's HTML before the <code className="text-indigo-300">&lt;/body&gt;</code> tag</li>
+                            <li>Paste it into your website&#39;s HTML before the <code className="text-indigo-300">&lt;/body&gt;</code> tag</li>
                             <li>A chat bubble will appear on the bottom-right of your site</li>
                             <li>It will answer questions using your uploaded documents</li>
                           </ol>
