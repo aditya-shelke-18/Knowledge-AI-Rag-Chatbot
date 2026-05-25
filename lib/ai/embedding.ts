@@ -97,12 +97,12 @@ export const findRelevantContent = async (userQuery: string, userId: string, cha
     userQueryEmbedded
   )})`;
 
-  // If chatbotId provided, search that chatbot's docs first; fall back to all user docs
+  // Strict scope: chatbot sees only its own docs, personal chat sees only personal docs
   const filter = chatbotId
-    ? and(gt(similarity, 0.4), eq(embeddings.userId, userId), eq(embeddings.chatbotId, chatbotId))
+    ? and(gt(similarity, 0.4), eq(embeddings.chatbotId, chatbotId))
     : and(gt(similarity, 0.4), eq(embeddings.userId, userId), isNull(embeddings.chatbotId));
 
-  let candidates = await db
+  const candidates = await db
     .select({
       content: embeddings.content,
       similarity,
@@ -112,20 +112,6 @@ export const findRelevantContent = async (userQuery: string, userId: string, cha
     .where(filter)
     .orderBy((t) => desc(t.similarity))
     .limit(12);
-
-  // If chatbot-scoped search returned nothing, fall back to all user docs
-  if (chatbotId && candidates.length === 0) {
-    candidates = await db
-      .select({
-        content: embeddings.content,
-        similarity,
-        source: embeddings.fileName,
-      })
-      .from(embeddings)
-      .where(and(gt(similarity, 0.4), eq(embeddings.userId, userId)))
-      .orderBy((t) => desc(t.similarity))
-      .limit(12);
-  }
 
   // Re-rank: boost results that have keyword overlap with the query
   const queryWords = new Set(
