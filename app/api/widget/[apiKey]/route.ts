@@ -3,7 +3,7 @@ import { chatbots } from "@/lib/db/schema/chatbots";
 import { eq } from "drizzle-orm";
 import { findRelevantContent } from "@/lib/ai/embedding";
 import { openai } from "@ai-sdk/openai";
-import { streamText, tool } from "ai";
+import { streamText, tool, stepCountIs } from "ai";
 import { z } from "zod";
 import { NextResponse } from "next/server";
 
@@ -35,13 +35,13 @@ export async function POST(
     tools: {
       getInformation: tool({
         description: "Search the knowledge base",
-        parameters: z.object({
+        inputSchema: z.object({
           question: z.string(),
         }),
         execute: async ({ question }) => findRelevantContent(question, bot.userId, bot.id),
       }),
     },
-    maxSteps: 3,
+    stopWhen: stepCountIs(3),
   });
 
   return result.toDataStreamResponse({
