@@ -101,6 +101,7 @@ export async function POST(req: Request) {
 
   const formData = await req.formData();
   const file = formData.get("file") as File;
+  const chatbotId = formData.get("chatbotId") as string | null;
 
   if (!file)
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -135,6 +136,7 @@ export async function POST(req: Request) {
     .insert(files)
     .values({
       userId: session.user.id,
+      chatbotId: chatbotId ?? null,
       name: file.name,
       type: getFileType(file.name),
       size: file.size,
@@ -142,13 +144,14 @@ export async function POST(req: Request) {
     })
     .returning();
 
-  // Create resource + embeddings for each chunk, linked to the file and user
+  // Create resource + embeddings for each chunk, linked to the file, user and optional chatbot
   await Promise.all(
     chunks.map((chunk) =>
       createResource(
         { content: chunk, fileId: fileRecord.id },
         file.name,
-        session.user.id
+        session.user.id,
+        chatbotId ?? undefined
       )
     )
   );

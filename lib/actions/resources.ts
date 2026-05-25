@@ -12,7 +12,8 @@ import { embeddings as embeddingsTable } from "../db/schema/embeddings";
 export const createResource = async (
   input: NewResourceParams,
   fileName?: string,
-  userId?: string
+  userId?: string,
+  chatbotId?: string
 ) => {
   try {
     const parsed = insertResourceSchema.parse(input);
@@ -31,6 +32,7 @@ export const createResource = async (
         embeddings.map((embedding) => ({
           resourceId: resource.id,
           userId: userId ?? null,
+          chatbotId: chatbotId ?? null,
           ...embedding,
           fileName: fileName ?? null,
         }))

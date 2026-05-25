@@ -1,7 +1,7 @@
 import { embed, embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { db } from "../db";
-import { cosineDistance, desc, gt, sql, eq, and } from "drizzle-orm";
+import { cosineDistance, desc, gt, sql, eq, and, isNull } from "drizzle-orm";
 import { embeddings } from "../db/schema/embeddings";
 
 const embeddingModel = openai.embedding("text-embedding-ada-002");
@@ -90,12 +90,17 @@ export const generateEmbedding = async (value: string): Promise<number[]> => {
  * Find relevant content using cosine similarity + keyword re-ranking.
  * Returns results with source file attribution for citations.
  */
-export const findRelevantContent = async (userQuery: string, userId: string) => {
+export const findRelevantContent = async (userQuery: string, userId: string, chatbotId?: string) => {
   const userQueryEmbedded = await generateEmbedding(userQuery);
   const similarity = sql<number>`1 - (${cosineDistance(
     embeddings.embedding,
     userQueryEmbedded
   )})`;
+
+  // If chatbotId provided, search only that chatbot's docs; otherwise search user's personal docs
+  const filter = chatbotId
+    ? and(gt(similarity, 0.4), eq(embeddings.chatbotId, chatbotId))
+    : and(gt(similarity, 0.4), eq(embeddings.userId, userId), isNull(embeddings.chatbotId));
 
   const candidates = await db
     .select({
@@ -104,7 +109,7 @@ export const findRelevantContent = async (userQuery: string, userId: string) => 
       source: embeddings.fileName,
     })
     .from(embeddings)
-    .where(and(gt(similarity, 0.4), eq(embeddings.userId, userId)))
+    .where(filter)
     .orderBy((t) => desc(t.similarity))
     .limit(12);
 

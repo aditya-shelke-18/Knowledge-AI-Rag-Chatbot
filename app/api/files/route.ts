@@ -2,19 +2,26 @@ import { db } from "@/lib/db";
 import { files } from "@/lib/db/schema/files";
 import { resources } from "@/lib/db/schema/resources";
 import { embeddings } from "@/lib/db/schema/embeddings";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const chatbotId = searchParams.get("chatbotId");
+
+  const conditions = chatbotId
+    ? and(eq(files.userId, session.user.id), eq(files.chatbotId, chatbotId))
+    : and(eq(files.userId, session.user.id), isNull(files.chatbotId));
 
   const allFiles = await db
     .select()
     .from(files)
-    .where(eq(files.userId, session.user.id))
+    .where(conditions)
     .orderBy(desc(files.createdAt));
 
   return NextResponse.json(allFiles);

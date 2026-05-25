@@ -36,6 +36,20 @@
       "when": 1779256849718,
       "tag": "0004_clean_norman_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779687792357,
+      "tag": "0005_vengeful_crusher_hogan",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779688539477,
+      "tag": "0006_violet_sleepwalker",
+      "breakpoints": true
     }
   ]
 }
