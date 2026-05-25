@@ -10,16 +10,60 @@
   let isOpen = false;
   let isLoading = false;
 
-  // Fetch bot settings
   fetch(`${BASE_URL}/api/widget/${API_KEY}`)
     .then(r => r.json())
     .then(data => { if (data.settings) settings = { ...settings, ...data.settings }; init(); })
     .catch(() => init());
 
+  // ── Lightweight markdown renderer ──────────────────────────
+  function renderMarkdown(text) {
+    if (!text) return '';
+    let html = text
+      // Escape HTML first
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      // Code blocks ```...```
+      .replace(/```[\w]*\n?([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+      // Inline code `...`
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      // Bold **text** or __text__
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.+?)__/g, '<strong>$1</strong>')
+      // Italic *text* or _text_
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/_([^_]+)_/g, '<em>$1</em>')
+      // Headers ### ## #
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      // Horizontal rule
+      .replace(/^---$/gm, '<hr>')
+      // Unordered lists - item or * item
+      .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+      // Ordered lists 1. item
+      .replace(/^\d+\. (.+)$/gm, '<li class="kai-ol">$1</li>')
+      // Wrap consecutive <li> in <ul> or <ol>
+      .replace(/(<li>[\s\S]*?<\/li>(\n|$))+/g, m => {
+        if (m.includes('class="kai-ol"')) return '<ol>' + m.replace(/ class="kai-ol"/g, '') + '</ol>';
+        return '<ul>' + m + '</ul>';
+      })
+      // Blockquote > text
+      .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+      // Links [text](url)
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      // Line breaks — double newline = paragraph, single = <br>
+      .replace(/\n\n+/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+
+    // Wrap in paragraph if not already block element
+    if (!html.match(/^<(h[1-3]|ul|ol|pre|blockquote|hr)/)) {
+      html = '<p>' + html + '</p>';
+    }
+    return html;
+  }
+
   function init() {
     injectStyles();
-    const widget = createWidget();
-    document.body.appendChild(widget);
+    document.body.appendChild(createWidget());
   }
 
   function injectStyles() {
@@ -30,32 +74,50 @@
       #kai-toggle { width: 56px; height: 56px; border-radius: 50%; background: ${settings.primaryColor}; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 24px rgba(0,0,0,0.25); transition: transform 0.2s; }
       #kai-toggle:hover { transform: scale(1.08); }
       #kai-toggle svg { width: 26px; height: 26px; fill: white; }
-      #kai-box { display: none; position: absolute; bottom: 68px; right: 0; width: 360px; height: 520px; background: #fff; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.18); flex-direction: column; overflow: hidden; }
+      #kai-box { display: none; position: absolute; bottom: 68px; right: 0; width: 370px; height: 540px; background: #fff; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.18); flex-direction: column; overflow: hidden; }
       #kai-box.open { display: flex; }
-      #kai-header { background: ${settings.primaryColor}; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+      #kai-header { background: ${settings.primaryColor}; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
       #kai-header-title { color: white; font-weight: 600; font-size: 15px; }
       #kai-header-sub { color: rgba(255,255,255,0.75); font-size: 11px; margin-top: 1px; }
       #kai-close { background: none; border: none; cursor: pointer; color: white; opacity: 0.8; font-size: 20px; line-height: 1; padding: 0; }
       #kai-close:hover { opacity: 1; }
-      #kai-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: #f8f8fb; }
-      .kai-msg { max-width: 82%; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; word-break: break-word; }
-      .kai-msg.bot { background: #fff; color: #1a1a2e; border-radius: 14px 14px 14px 2px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); align-self: flex-start; }
-      .kai-msg.user { background: ${settings.primaryColor}; color: white; border-radius: 14px 14px 2px 14px; align-self: flex-end; }
-      .kai-typing { display: flex; gap: 4px; align-items: center; padding: 10px 14px; }
-      .kai-dot { width: 7px; height: 7px; border-radius: 50%; background: #aaa; animation: kai-bounce 1.2s infinite; }
+      #kai-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: #f5f5fa; }
+      .kai-msg { max-width: 86%; border-radius: 14px; font-size: 13.5px; line-height: 1.6; word-break: break-word; }
+      .kai-msg.user { background: ${settings.primaryColor}; color: white; border-radius: 14px 14px 2px 14px; align-self: flex-end; padding: 10px 14px; }
+      .kai-msg.bot { background: #fff; color: #1a1a2e; border-radius: 14px 14px 14px 2px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); align-self: flex-start; padding: 10px 14px; }
+      /* Markdown styles inside bot messages */
+      .kai-msg.bot p { margin: 0 0 8px 0; }
+      .kai-msg.bot p:last-child { margin-bottom: 0; }
+      .kai-msg.bot h1,.kai-msg.bot h2,.kai-msg.bot h3 { margin: 8px 0 4px; font-weight: 700; color: #111; }
+      .kai-msg.bot h1 { font-size: 15px; }
+      .kai-msg.bot h2 { font-size: 14px; }
+      .kai-msg.bot h3 { font-size: 13.5px; }
+      .kai-msg.bot ul,.kai-msg.bot ol { margin: 6px 0; padding-left: 18px; }
+      .kai-msg.bot li { margin: 3px 0; }
+      .kai-msg.bot strong { font-weight: 700; color: #111; }
+      .kai-msg.bot em { font-style: italic; }
+      .kai-msg.bot code { background: #f0f0f5; border-radius: 4px; padding: 1px 5px; font-size: 12px; font-family: 'Courier New', monospace; color: #7c3aed; }
+      .kai-msg.bot pre { background: #1e1e2e; border-radius: 8px; padding: 10px 12px; overflow-x: auto; margin: 8px 0; }
+      .kai-msg.bot pre code { background: none; color: #a6e3a1; padding: 0; font-size: 12px; }
+      .kai-msg.bot blockquote { border-left: 3px solid ${settings.primaryColor}; margin: 6px 0; padding: 4px 10px; color: #555; background: #f8f8ff; border-radius: 0 6px 6px 0; }
+      .kai-msg.bot a { color: ${settings.primaryColor}; text-decoration: underline; }
+      .kai-msg.bot hr { border: none; border-top: 1px solid #eee; margin: 8px 0; }
+      /* Typing indicator */
+      .kai-typing { display: flex; gap: 4px; align-items: center; padding: 12px 14px; }
+      .kai-dot { width: 7px; height: 7px; border-radius: 50%; background: #bbb; animation: kai-bounce 1.2s infinite; }
       .kai-dot:nth-child(2) { animation-delay: 0.2s; }
       .kai-dot:nth-child(3) { animation-delay: 0.4s; }
       @keyframes kai-bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
-      #kai-input-area { padding: 10px 12px; border-top: 1px solid #eee; display: flex; gap: 8px; background: #fff; }
-      #kai-input { flex: 1; border: 1px solid #e0e0e0; border-radius: 10px; padding: 9px 12px; font-size: 13px; outline: none; resize: none; }
+      #kai-input-area { padding: 10px 12px; border-top: 1px solid #eee; display: flex; gap: 8px; background: #fff; flex-shrink: 0; }
+      #kai-input { flex: 1; border: 1px solid #e0e0e0; border-radius: 10px; padding: 9px 12px; font-size: 13px; outline: none; resize: none; max-height: 80px; }
       #kai-input:focus { border-color: ${settings.primaryColor}; }
-      #kai-send { background: ${settings.primaryColor}; border: none; border-radius: 10px; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      #kai-send { background: ${settings.primaryColor}; border: none; border-radius: 10px; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-end; }
       #kai-send:disabled { opacity: 0.5; cursor: not-allowed; }
       #kai-send svg { width: 16px; height: 16px; fill: white; }
-      #kai-branding { text-align: center; font-size: 10px; color: #bbb; padding: 4px 0 6px; background: #fff; }
+      #kai-branding { text-align: center; font-size: 10px; color: #ccc; padding: 4px 0 6px; background: #fff; flex-shrink: 0; }
       #kai-branding a { color: #bbb; text-decoration: none; }
       @media (max-width: 480px) {
-        #kai-box { width: calc(100vw - 24px); right: -12px; height: 70vh; bottom: 64px; }
+        #kai-box { width: calc(100vw - 20px); right: -10px; height: 72vh; bottom: 66px; }
         #kai-widget { bottom: 16px; right: 16px; }
       }
     `;
@@ -65,7 +127,6 @@
   function createWidget() {
     const wrap = document.createElement('div');
     wrap.id = 'kai-widget';
-
     wrap.innerHTML = `
       <div id="kai-box">
         <div id="kai-header">
@@ -76,7 +137,7 @@
           <button id="kai-close">&#x2715;</button>
         </div>
         <div id="kai-messages">
-          <div class="kai-msg bot">${settings.welcomeMessage}</div>
+          <div class="kai-msg bot"><p>${settings.welcomeMessage}</p></div>
         </div>
         <div id="kai-input-area">
           <textarea id="kai-input" rows="1" placeholder="${settings.placeholder}"></textarea>
@@ -90,7 +151,6 @@
         <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
       </button>
     `;
-
     setTimeout(() => {
       wrap.querySelector('#kai-toggle').addEventListener('click', toggleChat);
       wrap.querySelector('#kai-close').addEventListener('click', toggleChat);
@@ -98,15 +158,18 @@
       wrap.querySelector('#kai-input').addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
       });
+      // Auto-resize textarea
+      wrap.querySelector('#kai-input').addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+      });
     }, 0);
-
     return wrap;
   }
 
   function toggleChat() {
     isOpen = !isOpen;
-    const box = document.getElementById('kai-box');
-    box.classList.toggle('open', isOpen);
+    document.getElementById('kai-box').classList.toggle('open', isOpen);
     if (isOpen) document.getElementById('kai-input').focus();
   }
 
@@ -116,6 +179,7 @@
     if (!text || isLoading) return;
 
     input.value = '';
+    input.style.height = 'auto';
     appendMessage('user', text);
     messages.push({ role: 'user', content: text });
 
@@ -134,13 +198,12 @@
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let botText = '';
-      const msgEl = appendMessage('bot', '');
+      const msgEl = appendBotMessage();
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        const lines = decoder.decode(value).split('\n');
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           const data = line.slice(6).trim();
@@ -149,7 +212,7 @@
             const parsed = JSON.parse(data);
             if (parsed.type === 'text-delta' && parsed.delta) {
               botText += parsed.delta;
-              msgEl.textContent = botText;
+              msgEl.innerHTML = renderMarkdown(botText);
               scrollToBottom();
             }
           } catch {}
@@ -157,7 +220,7 @@
       }
 
       messages.push({ role: 'assistant', content: botText });
-    } catch (e) {
+    } catch {
       typingEl?.remove();
       appendMessage('bot', 'Sorry, something went wrong. Please try again.');
     }
@@ -171,7 +234,17 @@
     const msgs = document.getElementById('kai-messages');
     const el = document.createElement('div');
     el.className = `kai-msg ${role}`;
-    el.textContent = text;
+    if (role === 'bot') el.innerHTML = renderMarkdown(text);
+    else el.textContent = text;
+    msgs.appendChild(el);
+    scrollToBottom();
+    return el;
+  }
+
+  function appendBotMessage() {
+    const msgs = document.getElementById('kai-messages');
+    const el = document.createElement('div');
+    el.className = 'kai-msg bot';
     msgs.appendChild(el);
     scrollToBottom();
     return el;
