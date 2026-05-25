@@ -142,24 +142,17 @@
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
         for (const line of lines) {
-          // UI message stream format: lines starting with "0:" contain text deltas
-          if (line.startsWith('0:"') || line.startsWith("0:'")) {
-            try {
-              const parsed = JSON.parse(line.slice(2));
-              botText += parsed;
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === 'text-delta' && parsed.delta) {
+              botText += parsed.delta;
               msgEl.textContent = botText;
               scrollToBottom();
-            } catch {}
-          } else if (line.startsWith('0:')) {
-            try {
-              const parsed = JSON.parse(line.slice(2));
-              if (typeof parsed === 'string') {
-                botText += parsed;
-                msgEl.textContent = botText;
-                scrollToBottom();
-              }
-            } catch {}
-          }
+            }
+          } catch {}
         }
       }
 
