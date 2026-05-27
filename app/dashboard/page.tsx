@@ -5,7 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import {
   Brain, Upload, FileText, FileSpreadsheet, File, Trash2, Loader2,
   Plus, Copy, Check, Clock, LogOut, Bot, Code2, ChevronDown, ChevronUp,
-  Eye, EyeOff, MessageSquare, X, ExternalLink, HardDrive, Sparkles,
+  Eye, EyeOff, MessageSquare, X, ExternalLink, HardDrive, Sparkles, Globe,
 } from "lucide-react";
 
 interface UploadedFile {
@@ -30,6 +30,7 @@ function getFileIcon(type: string) {
   if (type === "pdf") return <FileText className="w-4 h-4 text-red-400" />;
   if (type === "excel" || type === "csv") return <FileSpreadsheet className="w-4 h-4 text-emerald-400" />;
   if (type === "word") return <FileText className="w-4 h-4 text-blue-400" />;
+  if (type === "website") return <Globe className="w-4 h-4 text-cyan-400" />;
   return <File className="w-4 h-4 text-slate-400" />;
 }
 
@@ -42,6 +43,8 @@ function ChatbotDocs({ botId }: { botId: string }) {
   const [loading, setLoading] = useState(true);
   const [uploadStatus, setUploadStatus] = useState<{ type: "loading" | "success" | "error"; text: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState("");
+  const [isScraping, setIsScraping] = useState(false);
 
   const fetchFiles = useCallback(async () => {
     const res = await fetch(`/api/files?chatbotId=${botId}`);
@@ -73,6 +76,25 @@ function ChatbotDocs({ botId }: { botId: string }) {
     setDeletingId(null);
   }
 
+  async function handleScrapeUrl() {
+    const url = urlInput.trim();
+    if (!url) return;
+    setIsScraping(true);
+    setUploadStatus({ type: "loading", text: `Scraping "${url}"...` });
+    try {
+      const res = await fetch("/api/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, chatbotId: botId }),
+      });
+      const data = await res.json();
+      if (res.ok) { setUploadStatus({ type: "success", text: data.message }); setUrlInput(""); fetchFiles(); }
+      else setUploadStatus({ type: "error", text: data.error ?? "Scrape failed" });
+    } catch { setUploadStatus({ type: "error", text: "Scrape failed. Please try again." }); }
+    setIsScraping(false);
+    setTimeout(() => setUploadStatus(null), 5000);
+  }
+
   return (
     <div className="space-y-3">
       {/* Upload area */}
@@ -87,6 +109,29 @@ function ChatbotDocs({ botId }: { botId: string }) {
         <Upload className="w-7 h-7 text-slate-600 group-hover:text-violet-400 mx-auto mb-2 transition-colors" />
         <p className="text-slate-400 text-xs font-medium">Drop a file or click to upload</p>
         <p className="text-slate-600 text-[10px] mt-0.5">PDF, Word, Excel, CSV, TXT — max 10MB</p>
+      </div>
+
+      {/* URL scrape */}
+      <div className="flex gap-2">
+        <div className="flex-1 flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 focus-within:border-violet-400/40 transition-colors">
+          <Globe className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+          <input
+            type="url"
+            value={urlInput}
+            onChange={e => setUrlInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleScrapeUrl()}
+            placeholder="https://example.com"
+            className="flex-1 bg-transparent text-slate-300 placeholder-slate-600 text-xs outline-none"
+          />
+        </div>
+        <button
+          onClick={handleScrapeUrl}
+          disabled={isScraping || !urlInput.trim()}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/20 text-cyan-300 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        >
+          {isScraping ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+          {isScraping ? "Scraping..." : "Scrape"}
+        </button>
       </div>
 
       {/* Status */}
