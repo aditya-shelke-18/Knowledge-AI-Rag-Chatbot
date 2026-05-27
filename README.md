@@ -1,4 +1,4 @@
-# Knowledge AI — RAG Chatbot Platform
+# Knowledge AI — RAG Chatbot Generator
 
 A full-featured **Retrieval-Augmented Generation (RAG)** chatbot platform built with the Vercel AI SDK. Upload documents or scrape websites, then chat with your knowledge base — the AI answers **strictly from your content**, never from general knowledge.
 
@@ -130,17 +130,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npm run db:push` | Push schema changes directly (no migration files) |
 | `npm run db:studio` | Open Drizzle Studio to browse the database |
 | `npm run db:check` | Check migration consistency |
-
----
-
-## Deployment (Vercel)
-
-1. Push to GitHub
-2. Import the repo in [Vercel](https://vercel.com)
-3. Add all environment variables from `.env`
-4. Vercel auto-detects Next.js and deploys
-
-> The project includes a `vercel.json` that sets `installCommand` to `npm install --legacy-peer-deps` to handle peer dependency conflicts automatically.
 
 ---
 
