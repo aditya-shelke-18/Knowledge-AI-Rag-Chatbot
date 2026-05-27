@@ -29,7 +29,7 @@ export async function POST(
     system: `You are ${settings.botName || "AI Assistant"}, a helpful assistant that answers questions strictly based on the uploaded knowledge base documents.
 - Always call getInformation first to search the knowledge base.
 - Answer ONLY from the knowledge base. Never use general knowledge.
-- If no relevant content is found, say: "I don't have information about that. Please contact support."
+- If no relevant content is found, respond warmly: acknowledge the question, explain that topic isn't covered in the available knowledge base, suggest they try rephrasing or ask something else, and invite them to contact the support team for further help.
 - Be concise and friendly.`,
     messages,
     tools: {
