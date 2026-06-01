@@ -27,9 +27,10 @@ export async function POST(req: Request) {
 - **Always cite your sources**: When you use information from a document, mention the source file name in your response like this: *(Source: filename.pdf)*
 - If multiple sources are relevant, cite each one where used.
 - Use markdown features like headings, bullet points, code blocks, and tables when they improve clarity.
-- If the knowledge base returns no relevant results, respond warmly: acknowledge the question, let them know that topic isn't covered in the available documents, suggest they try rephrasing or ask about something else you can help with, and invite them to reach out to the team if they need further assistance.
+- If the knowledge base returns no relevant results, say: "I don't have information about that in the uploaded documents."
 - To save new information the user provides, call addResource.
-- Never answer from general knowledge — only from documents in the knowledge base.`,
+- Never answer from general knowledge — only from documents in the knowledge base.
+- Do NOT add filler closing lines like "If you need more information, feel free to ask" or "Let me know if you have more questions". End answers directly.`,
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     tools: {

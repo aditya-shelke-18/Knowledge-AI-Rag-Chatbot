@@ -71,7 +71,7 @@
     style.textContent = `
       #kai-widget * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
       #kai-widget { position: fixed; bottom: 24px; right: 24px; z-index: 999999; }
-      #kai-toggle { width: 56px; height: 56px; border-radius: 50%; background: ${settings.primaryColor}; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 24px rgba(0,0,0,0.25); transition: transform 0.2s; }
+      #kai-toggle { width: 56px; height: 56px; border-radius: 50%; background: ${settings.primaryColor}; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 24px rgba(0,0,0,0.25); transition: transform 0.2s; color: ${settings.primaryColor}; }
       #kai-toggle:hover { transform: scale(1.08); }
       #kai-toggle svg { width: 26px; height: 26px; fill: white; }
       #kai-box { display: none; position: absolute; bottom: 68px; right: 0; width: 370px; height: 540px; background: #fff; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.18); flex-direction: column; overflow: hidden; }
@@ -148,7 +148,18 @@
         <div id="kai-branding">Powered by <a href="https://knowledge-ai-rag-chatbot.vercel.app" target="_blank">Knowledge AI</a></div>
       </div>
       <button id="kai-toggle" title="Chat with us">
-        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Robot head -->
+          <rect x="4" y="7" width="16" height="11" rx="3" fill="white"/>
+          <!-- Eyes -->
+          <circle cx="9" cy="12" r="1.8" fill="currentColor"/>
+          <circle cx="15" cy="12" r="1.8" fill="currentColor"/>
+          <!-- Antenna -->
+          <line x1="12" y1="7" x2="12" y2="4" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="12" cy="3" r="1.2" fill="white"/>
+          <!-- Mouth -->
+          <rect x="8.5" y="15" width="7" height="1.5" rx="0.75" fill="currentColor"/>
+        </svg>
       </button>
     `;
     setTimeout(() => {
