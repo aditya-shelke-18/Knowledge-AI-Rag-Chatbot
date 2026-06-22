@@ -132,7 +132,7 @@
         <div id="kai-header">
           <div>
             <div id="kai-header-title">${settings.botName}</div>
-            <div id="kai-header-sub">Powered by Knowledge AI</div>
+           
           </div>
           <button id="kai-close">&#x2715;</button>
         </div>
